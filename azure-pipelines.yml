@@ -1,71 +1,147 @@
-trigger: none
-
-variables:
-  buildConfiguration: 'Release'
-
 stages:
+  # Stage 1: Checkout and Dependency Analysis
+  - stage: Checkout_And_Analyze
+    displayName: 'Checkout and Analyze Dependencies'
+    jobs:
+      - job: Checkout_And_Analyze
+        displayName: 'Checkout and Analyze Dependencies'
+        steps:
+          - checkout: self  # Ensure the repository is checked out
+
+          - script: |
+              mvn clean
+              mvn dependency:tree
+            displayName: 'Clean and Analyze Dependencies'
+
+  # Stage 2: Build
   - stage: Build
-    displayName: 'Build Stage'
+    displayName: 'Build Application'
+    dependsOn: Checkout_And_Analyze
     jobs:
       - job: Build
+        displayName: 'Build Application'
         steps:
+          # Compile the code
           - task: Maven@3
+            displayName: 'Maven Compile'
             inputs:
               mavenPomFile: 'pom.xml'
-              goals: 'clean install'
-              options: '-DskipTests'
+              goals: 'compile'
+              publishJUnitResults: false
+              javaHomeOption: 'JDKVersion'
+              jdkVersionOption: '1.17'
+              mavenVersionOption: 'Default'
+              mavenOptions: '-Xmx3072m'
+              mavenAuthenticateFeed: false
+              effectivePomSkip: false
 
-  - stage: StaticAnalysis
-    displayName: 'Static Analysis'
+          # Commented out SonarQube tasks
+          # # Prepare for SonarQube analysis
+          # - task: SonarQubePrepare@4
+          #   displayName: 'Prepare SonarQube Analysis'
+          #   inputs:
+          #     SonarQube: 'Sonar_Connect'
+          #     scannerMode: 'CLI'
+          #     configMode: 'manual'
+          #     cliProjectKey: 'ADAS'
+          #     cliProjectName: 'ADAS'
+          #     extraProperties: |
+          #       sonar.exclusions=**/*.bin
+
+          # # Run tests and SonarQube analysis
+          # - task: Maven@3
+          #   displayName: 'Test Run and SonarQube Analysis'
+          #   inputs:
+          #     mavenPomFile: 'pom.xml'
+          #     goals: 'verify sonar:sonar'
+          #     publishJUnitResults: true
+          #     testResultsFiles: '**/surefire-reports/TEST-*.xml'
+          #     javaHomeOption: 'JDKVersion'
+          #     jdkVersionOption: '1.17'
+          #     mavenVersionOption: 'Default'
+          #     mavenOptions: '-Xmx3072m'
+          #     mavenAuthenticateFeed: false
+          #     effectivePomSkip: false
+
+          # Package the application
+          - task: Maven@3
+            displayName: 'Package Application'
+            inputs:
+              mavenPomFile: 'pom.xml'
+              goals: 'package'
+              publishJUnitResults: false
+              javaHomeOption: 'JDKVersion'
+              jdkVersionOption: '1.17'
+              mavenVersionOption: 'Default'
+              mavenOptions: '-Xmx3072m'
+              mavenAuthenticateFeed: false
+              effectivePomSkip: false
+
+          # Zip the artifacts
+          - task: PowerShell@2
+            displayName: 'Zip Maven Artifacts'
+            inputs:
+              targetType: 'inline'
+              script: |
+                $outputPath = "$(Build.ArtifactStagingDirectory)/maven_artifacts.zip"
+                Add-Type -AssemblyName System.IO.Compression.FileSystem
+                [System.IO.Compression.ZipFile]::CreateFromDirectory("$(System.DefaultWorkingDirectory)/target", $outputPath)
+                Write-Output "Artifacts zipped to $outputPath"
+
+          # Publish the zipped artifacts
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish Zipped Build Artifacts'
+            inputs:
+              PathtoPublish: '$(Build.ArtifactStagingDirectory)/maven_artifacts.zip'
+              ArtifactName: 'maven_artifacts'
+              publishLocation: 'Container'
+
+  # Stage 3: Copy Artifacts and Build Docker Image
+  - stage: Artifact_And_Docker
+    displayName: 'Copy Artifacts and Build Docker Image'
     dependsOn: Build
+    pool:
+      vmImage: 'ubuntu-latest'  # Use a Linux-based pool for Docker tasks
     jobs:
-      - job: SonarQube
+      - job: Artifact_And_Docker
+        displayName: 'Copy Artifacts and Build Docker Image'
         steps:
-          - task: SonarQubePrepare@5
+          # Download the artifacts
+          - task: DownloadPipelineArtifact@2
+            displayName: 'Download Build Artifacts'
             inputs:
-              SonarQube: 'SonarQubeServiceEndpoint'
-              scannerMode: 'CLI'
-              configMode: 'manual'
-              cliProjectKey: 'safety-critical-project'
-              cliProjectName: 'SafetyCritical'
-          - task: Maven@3
-            inputs:
-              mavenPomFile: 'pom.xml'
-              goals: 'sonar:sonar'
+              artifact: 'maven_artifacts'
 
-  - stage: Testing
-    displayName: 'Testing Stage'
-    dependsOn: StaticAnalysis
-    jobs:
-      - job: RunTests
-        steps:
+          # List contents of artifact staging directory
           - script: |
-              echo "Running Java Tests..."
-              # Placeholder for Java test execution
-          - script: |
-              echo "Mocking CARLA Script Execution..."
-              # Placeholder for CARLA mock script execution
+              echo "Contents of $(Build.ArtifactStagingDirectory):"
+              ls -R $(Build.ArtifactStagingDirectory)
+            displayName: 'List Artifact Staging Directory Contents'
 
-  - stage: DockerBuild
-    displayName: 'Build Docker Image'
-    dependsOn: Testing
-    jobs:
-      - job: DockerImageBuild
-        steps:
+          # Build Docker image with the custom tag
           - task: Docker@2
+            displayName: 'Build and Push Docker Image'
             inputs:
-              containerRegistry: 'DockerRegistryServiceEndpoint'
-              repository: 'safety-critical-app'
-              command: 'build'
+              containerRegistry: 'DockerHub'
+              repository: 'parkasssist/parkassistrepo'
+              command: 'buildAndPush'
               Dockerfile: 'Dockerfile'
-              tags: '$(Build.BuildId)'
+              tags: |
+                $(Build.BuildId)
+                latest
 
-  - stage: Deployment
-    displayName: 'Deployment Stage'
-    dependsOn: DockerBuild
+  # Stage 4: Test Run and Defect Logging in Codebeamer
+  - stage: Test
+    displayName: 'Test'
     jobs:
-      - job: DeployToEnv
+      - job: RunPythonScript
+        displayName: 'Run Python Script'
         steps:
+          - checkout: self  # Ensure the repository is checked out
+
           - script: |
-              echo "Deploying application to environment..."
-              # Placeholder for deployment commands
+              python Scripts/Automated_Test_Defect.py
+            displayName: 'Run Python Script'
+            env:
+              cb_user: $(cb_user)
+              cb_password: $(cb_password)
