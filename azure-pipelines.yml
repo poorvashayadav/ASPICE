@@ -1,3 +1,5 @@
+trigger: none
+
 stages:
   # Stage 1: Checkout and Dependency Analysis
   - stage: Checkout_And_Analyze
