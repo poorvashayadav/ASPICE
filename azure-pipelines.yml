@@ -2,7 +2,6 @@ trigger: none
 
 variables:
   buildConfiguration: 'Release'
-  environmentName: 'Staging'
 
 stages:
   - stage: Build
@@ -27,8 +26,8 @@ stages:
               SonarQube: 'SonarQubeServiceEndpoint'
               scannerMode: 'CLI'
               configMode: 'manual'
-              cliProjectKey: 'staging-safety-critical'
-              cliProjectName: 'SafetyCritical-Staging'
+              cliProjectKey: 'safety-critical-project'
+              cliProjectName: 'SafetyCritical'
           - task: Maven@3
             inputs:
               mavenPomFile: 'pom.xml'
@@ -38,22 +37,35 @@ stages:
     displayName: 'Testing Stage'
     dependsOn: StaticAnalysis
     jobs:
-      - job: IntegrationTests
+      - job: RunTests
         steps:
           - script: |
-              echo "Running tests in the Staging environment..."
-              # Add integration and automated testing scripts here
+              echo "Running Java Tests..."
+              # Placeholder for Java test execution
+          - script: |
+              echo "Mocking CARLA Script Execution..."
+              # Placeholder for CARLA mock script execution
 
-  - stage: StagingDeployment
-    displayName: 'Staging Deployment'
+  - stage: DockerBuild
+    displayName: 'Build Docker Image'
     dependsOn: Testing
     jobs:
-      - deployment: DeployStaging
-        environment: $(environmentName)
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - script: |
-                    echo "Deploying application to the Staging environment..."
-                    # Add deployment scripts for the staging environment here
+      - job: DockerImageBuild
+        steps:
+          - task: Docker@2
+            inputs:
+              containerRegistry: 'DockerRegistryServiceEndpoint'
+              repository: 'safety-critical-app'
+              command: 'build'
+              Dockerfile: 'Dockerfile'
+              tags: '$(Build.BuildId)'
+
+  - stage: Deployment
+    displayName: 'Deployment Stage'
+    dependsOn: DockerBuild
+    jobs:
+      - job: DeployToStaging
+        steps:
+          - script: |
+              echo "Deploying application to environment..."
+              # Placeholder for deployment commands
