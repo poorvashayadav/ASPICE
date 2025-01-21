@@ -64,7 +64,7 @@ stages:
     displayName: 'Deployment Stage'
     dependsOn: DockerBuild
     jobs:
-      - job: DeployToStaging
+      - job: DeployToEnv
         steps:
           - script: |
               echo "Deploying application to environment..."
