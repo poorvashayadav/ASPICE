@@ -1,11 +1,12 @@
+import os
 import requests
 import unittest
 from unittest.mock import MagicMock
 
 # Configuration
 TRACKER_ID = 3606  # Tracker ID for "Defect-Bug Reports"
-API_URL = f"http://localhost:8080/cb/api/v3/trackers/{TRACKER_ID}/items"
-AUTH = ('admin', 'admin')  # Replace with your credentials
+API_URL = f"http://20.235.210.85:8080/cb/api/v3/trackers/{TRACKER_ID}/items"
+AUTH = (os.getenv('cb_user'), os.getenv('cb_password'))
 HEADERS = {
     "Content-Type": "application/json"
 }
@@ -21,11 +22,9 @@ class MockCarla:
         def get_world(self):
             return self.world
 
-
 class MockWorld:
     def __init__(self):
         self.actor = MagicMock()
-
 
 # Function to log defect
 def log_defect(failed_test_name, failure_reason):
@@ -68,7 +67,6 @@ def log_defect(failed_test_name, failure_reason):
     except requests.RequestException as e:
         print(f"Error during defect logging for {failed_test_name}:", e)
 
-
 # Test case
 class TestCarlaSimulated(unittest.TestCase):
 
@@ -94,7 +92,6 @@ class TestCarlaSimulated(unittest.TestCase):
             self.assertTrue(client.get_world().actor.exists())
         except AssertionError as e:
             log_defect("test_actor_exists", str(e))
-
 
 if __name__ == '__main__':
     unittest.main()
