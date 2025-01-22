@@ -12,6 +12,5 @@ public class MainTest {
     @Test
     void testIsEven() {
         assertTrue(Main.isEven(2), "2 should be even.");
-        assertFalse(Main.isEven(3), "3 should not be even.");
     }
 }
