@@ -37,41 +37,14 @@ stages:
               mavenAuthenticateFeed: false
               effectivePomSkip: false
 
-          # Commented out SonarQube tasks
-          # # Prepare for SonarQube analysis
-          # - task: SonarQubePrepare@4
-          #   displayName: 'Prepare SonarQube Analysis'
-          #   inputs:
-          #     SonarQube: 'Sonar_Connect'
-          #     scannerMode: 'CLI'
-          #     configMode: 'manual'
-          #     cliProjectKey: 'ADAS'
-          #     cliProjectName: 'ADAS'
-          #     extraProperties: |
-          #       sonar.exclusions=**/*.bin
-
-          # # Run tests and SonarQube analysis
-          # - task: Maven@3
-          #   displayName: 'Test Run and SonarQube Analysis'
-          #   inputs:
-          #     mavenPomFile: 'pom.xml'
-          #     goals: 'verify sonar:sonar'
-          #     publishJUnitResults: true
-          #     testResultsFiles: '**/surefire-reports/TEST-*.xml'
-          #     javaHomeOption: 'JDKVersion'
-          #     jdkVersionOption: '1.17'
-          #     mavenVersionOption: 'Default'
-          #     mavenOptions: '-Xmx3072m'
-          #     mavenAuthenticateFeed: false
-          #     effectivePomSkip: false
-
           # Package the application
           - task: Maven@3
             displayName: 'Package Application'
             inputs:
               mavenPomFile: 'pom.xml'
               goals: 'package'
-              publishJUnitResults: false
+              publishJUnitResults: true
+              testResultsFiles: '**/target/surefire-reports/*.xml'
               javaHomeOption: 'JDKVersion'
               jdkVersionOption: '17'
               mavenVersionOption: 'Default'
@@ -125,7 +98,7 @@ stages:
             displayName: 'Build and Push Docker Image'
             inputs:
               containerRegistry: 'DockerHub'
-              repository: 'parkasssist/parkassistrepo'
+              repository: 'parkassist/parkassistrepo'
               command: 'buildAndPush'
               Dockerfile: 'Dockerfile'
               tags: |
