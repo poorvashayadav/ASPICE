@@ -15,6 +15,7 @@ stages:
         displayName: 'Checkout and Analyze Dependencies'
         steps:
           - checkout: self  # Ensure the repository is checked out
+            fetchDepth: 0  # Fetch full history to avoid shallow clones
 
           - script: |
               mvn clean
