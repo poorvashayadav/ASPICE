@@ -7,11 +7,12 @@ variables:
   - group: secrets
 
 stages:
+  # Stage 1: Build
   - stage: Build
-    displayName: 'Build and Package Application'
+    displayName: 'Build Application'
     jobs:
-      - job: BuildAndPackage
-        displayName: 'Build and Package Application'
+      - job: Build
+        displayName: 'Build Application'
         steps:
           # Checkout the code
           - checkout: self  # Ensure the repository is checked out
@@ -30,6 +31,14 @@ stages:
               mavenAuthenticateFeed: false
               effectivePomSkip: false
 
+  # Stage 2: Package
+  - stage: Package
+    displayName: 'Package Application'
+    dependsOn: Build  # This ensures the Package stage runs after Build
+    jobs:
+      - job: Package
+        displayName: 'Package Application'
+        steps:
           # Package the application with Maven
           - task: Maven@3
             displayName: 'Maven Package'
