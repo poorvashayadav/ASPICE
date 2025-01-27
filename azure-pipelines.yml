@@ -7,50 +7,25 @@ variables:
   - group: secrets
 
 stages:
-  # Stage 1: Build
   - stage: Build
-    displayName: 'Build Application'
+    displayName: 'Build and Package Application'
     jobs:
-      - job: Build
-        displayName: 'Build Application'
+      - job: BuildAndPackage
+        displayName: 'Build and Package Application'
         steps:
           # Checkout the code
           - checkout: self  # Ensure the repository is checked out
 
-          # Clean and compile the project with Maven
+          # Clean, compile, and run Maven with detailed logs
           - task: Maven@3
-            displayName: 'Maven Clean and Compile'
+            displayName: 'Maven Clean, Compile and Package'
             inputs:
               mavenPomFile: 'pom.xml'
-              goals: 'clean compile'
-              publishJUnitResults: false
+              goals: 'clean compile package'
+              publishJUnitResults: false  # Do not publish separate JUnit results
               javaHomeOption: 'JDKVersion'
               jdkVersionOption: '17'
               mavenVersionOption: 'Default'
-              mavenOptions: '-Xmx3072m'
+              mavenOptions: '-X -DskipTests'  # Enable debug and skip tests
               mavenAuthenticateFeed: false
               effectivePomSkip: false
-
-  # Stage 2: Package
-  - stage: Package
-    displayName: 'Package Application'
-    dependsOn: Build  # Ensures that the Package stage runs after Build stage
-    jobs:
-      - job: Package
-        displayName: 'Package Application'
-        steps:
-          # Ensure the repository is checked out in this stage
-          - checkout: self
-
-          # Package the application with Maven
-          - task: Maven@3
-            displayName: 'Maven Package'
-            inputs:
-              mavenPomFile: 'pom.xml'
-              goals: 'package'
-              publishJUnitResults: false
-              javaHomeOption: 'JDKVersion'
-              jdkVersionOption: '17'
-              mavenVersionOption: 'Default'
-              mavenOptions: '-DskipTests'
-              mavenAuthenticateFeed: false
