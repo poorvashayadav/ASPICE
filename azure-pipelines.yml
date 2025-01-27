@@ -104,12 +104,20 @@ stages:
             inputs:
               versionSpec: '3.12'
               addToPath: true
+
+          # Install Python dependencies (requests library)
+          - script: |
+              python -m pip install --upgrade pip
+              pip install requests
+            displayName: 'Install Python Dependencies'
+
           - script: |
               python scripts/defect_logging.py
             displayName: 'Log Defects to CodeBeamer'
             env:
               cb_user: $(cb_user)
               cb_password: $(cb_password)
+
           - script: |
               echo "Checking if defect_logging.py exists and the latest version"
               dir scripts\defect_logging.py
