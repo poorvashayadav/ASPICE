@@ -154,5 +154,5 @@ stages:
           # Verify if the defect.py file exists and is the latest version
           - script: |
               echo "Checking if defect.py exists and the latest version"
-              ls -l scripts/defect.py
-            displayName: 'Verify defect.py Version'
+              ls -l scripts/defect_logging.py
+            displayName: 'Verify defect_logging.py Version'
