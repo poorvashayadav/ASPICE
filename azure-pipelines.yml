@@ -132,6 +132,11 @@ stages:
               versionSpec: '3.12'  # Specify Python version 3.12
               addToPath: true  # This adds Python to the system PATH
 
+          # Verify the Python version
+          - script: |
+              python --version
+            displayName: 'Check Python Version'
+
           # Simulate defect detection and logging
           - script: |
               echo "Detecting defects and logging in CodeBeamer..."
@@ -145,3 +150,9 @@ stages:
             env:
               cb_user: $(cb_user)
               cb_password: $(cb_password)
+
+          # Verify if the defect.py file exists and is the latest version
+          - script: |
+              echo "Checking if defect.py exists and the latest version"
+              ls -l scripts/defect.py
+            displayName: 'Verify defect.py Version'
