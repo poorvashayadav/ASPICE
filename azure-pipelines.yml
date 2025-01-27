@@ -60,3 +60,36 @@ stages:
               PathtoPublish: '$(Build.ArtifactStagingDirectory)/maven_artifacts.zip'
               ArtifactName: 'maven_artifacts'
               publishLocation: 'Container'
+  - stage: CopyArtifactsAndBuildDockerImage
+    displayName: 'Copy Artifacts and Build Docker Image'
+    dependsOn: ZipAndPublishArtifacts
+    jobs:
+      - job: CopyAndBuildDocker
+        displayName: 'Download Artifacts and Build Docker Image'
+        pool:
+          vmImage: 'ubuntu-latest'  # Use Linux-based VM for Docker tasks
+        steps:
+          # Download the artifacts from the previous stage
+          - task: DownloadPipelineArtifact@2
+            displayName: 'Download Build Artifacts'
+            inputs:
+              artifactName: 'maven_artifacts'  # Name of the artifact published in the previous stage
+              targetPath: '$(Pipeline.Workspace)/artifacts'  # Where to download the artifacts
+
+          # List contents of artifact staging directory to verify downloaded files
+          - script: |
+              echo "Contents of $(Pipeline.Workspace)/artifacts:"
+              ls -R $(Pipeline.Workspace)/artifacts
+            displayName: 'List Artifact Directory Contents'
+
+          # Build the Docker image using the downloaded artifacts
+          - task: Docker@2
+            displayName: 'Build Docker Image'
+            inputs:
+              containerRegistry: 'DockerHub'  # Docker registry connection (you can change this if using another registry)
+              repository: 'your-repository-name/your-image-name'  # Docker repository and image name
+              command: 'buildAndPush'  # Build and push the image
+              Dockerfile: 'Dockerfile'  # Path to Dockerfile in the repository
+              tags: |
+                $(Build.BuildId)
+                latest
