@@ -87,7 +87,7 @@ stages:
             displayName: 'Build Docker Image'
             inputs:
               containerRegistry: 'DockerHub'  # Docker registry connection (you can change this if using another registry)
-              repository: 'your-repository-name/your-image-name'  # Docker repository and image name
+              repository: 'parkassist/aspice'  # Docker repository and image name
               command: 'buildAndPush'  # Build and push the image
               Dockerfile: 'Dockerfile'  # Path to Dockerfile in the repository
               tags: |
