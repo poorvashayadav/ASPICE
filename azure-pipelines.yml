@@ -122,3 +122,29 @@ stages:
               echo "Checking if defect_logging.py exists and the latest version"
               dir scripts\defect_logging.py
             displayName: 'Verify defect_logging.py Version'
+  - stage: MonitorCBInstance
+    displayName: 'Monitor CB Instance'
+    dependsOn: []  # Independent stage, doesn't depend on any other stages
+    jobs:
+      - job: MonitorCB
+        displayName: 'Monitor CodeBeamer Instance'
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.12'
+              addToPath: true
+
+          - script: |
+              python -m pip install --upgrade pip
+              pip install requests
+              pip install pandas
+            displayName: 'Install Python Dependencies'
+
+          - script: |
+              python scripts/monitor_cb.py
+            displayName: 'Monitor CodeBeamer Instance'
+
+          - script: |
+              echo "CB Monitoring script completed. Validating log output."
+              dir scripts\monitor_cb.py
+            displayName: 'Validate Monitoring Script'
