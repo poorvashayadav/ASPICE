@@ -13,40 +13,26 @@ stages:
       - job: BuildAndPackage
         displayName: 'Build and Package Application'
         steps:
-          # Checkout the code
-          - checkout: self  # Ensure the repository is checked out
-
-          # Clean, compile, and run Maven with detailed logs
+          - checkout: self
           - task: Maven@3
             displayName: 'Maven Clean, Compile and Package'
             inputs:
               mavenPomFile: 'pom.xml'
               goals: 'clean compile package'
-              publishJUnitResults: false  # Do not publish separate JUnit results
-              javaHomeOption: 'JDKVersion'
-              jdkVersionOption: '17'
-              mavenVersionOption: 'Default'
-              mavenOptions: '-X -DskipTests'  # Enable debug and skip tests
-              mavenAuthenticateFeed: false
-              effectivePomSkip: false
+              mavenOptions: '-X -DskipTests'
 
   - stage: Test
     displayName: 'Test'
-    dependsOn: Build  # Ensure the Test stage runs after Build
+    dependsOn: Build
     jobs:
       - job: RunCarlaTestScript
         displayName: 'Run Carla Test Script'
         steps:
-          # Checkout the repository again if needed
           - checkout: self
-
-          # Install Python dependencies (requests library)
           - script: |
               python -m pip install --upgrade pip
               pip install requests
             displayName: 'Install Python Dependencies'
-
-          # Run the Carla test script located in the 'scripts' folder
           - script: |
               python scripts/test_carla.py
             displayName: 'Run Carla Test Script'
@@ -56,28 +42,21 @@ stages:
 
   - stage: ZipAndPublishArtifacts
     displayName: 'Zip and Publish Artifacts'
-    dependsOn: Build  # This stage depends on the Build stage
+    dependsOn: Build
     jobs:
       - job: ZipAndPublish
         displayName: 'Zip and Publish Build Artifacts'
         steps:
-          # Ensure the build output is available
-          - checkout: self  # Ensure the repository is checked out
-
-          # Zip the Maven build artifacts
+          - checkout: self
           - task: PowerShell@2
             displayName: 'Zip Maven Artifacts'
             inputs:
               targetType: 'inline'
               script: |
-                # Define the output path for the zip file
                 $outputPath = "$(Build.ArtifactStagingDirectory)/maven_artifacts.zip"
-                # Compress the target folder into a zip file
                 Add-Type -AssemblyName System.IO.Compression.FileSystem
                 [System.IO.Compression.ZipFile]::CreateFromDirectory("$(System.DefaultWorkingDirectory)/target", $outputPath)
                 Write-Output "Artifacts zipped to $outputPath"
-
-          # Publish the zipped artifacts
           - task: PublishBuildArtifacts@1
             displayName: 'Publish Zipped Artifacts'
             inputs:
@@ -92,22 +71,17 @@ stages:
       - job: CopyAndBuildDocker
         displayName: 'Download Artifacts and Build Docker Image'
         pool:
-          vmImage: 'ubuntu-latest'  # Use Linux-based VM for Docker tasks
+          vmImage: 'ubuntu-latest'
         steps:
-          # Download the artifacts from the previous stage
           - task: DownloadPipelineArtifact@2
             displayName: 'Download Build Artifacts'
             inputs:
-              artifactName: 'maven_artifacts'  # Name of the artifact published in the previous stage
-              targetPath: '$(Pipeline.Workspace)/artifacts'  # Where to download the artifacts
-
-          # List contents of artifact staging directory to verify downloaded files
+              artifactName: 'maven_artifacts'
+              targetPath: '$(Pipeline.Workspace)/artifacts'
           - script: |
               echo "Contents of $(Pipeline.Workspace)/artifacts:"
               ls -R $(Pipeline.Workspace)/artifacts
             displayName: 'List Artifact Directory Contents'
-
-          # Build the Docker image using the downloaded artifacts
           - task: Docker@2
             displayName: 'Build Docker Image'
             inputs:
@@ -121,37 +95,28 @@ stages:
 
   - stage: DefectDetectionAndLogging
     displayName: 'Defect Detection & Logging'
-    dependsOn: Test  # This stage depends on the Test stage
+    dependsOn: Test
     jobs:
       - job: LogDefects
         displayName: 'Log Defects in CodeBeamer'
         steps:
-          # Ensure Python 3.12 is used
           - task: UsePythonVersion@0
             inputs:
-              versionSpec: '3.12'  # Specify Python version 3.x
-              addToPath: true  # This adds Python to the system PATH
-
-          # Verify the Python version
+              versionSpec: '3.12'
+              addToPath: true
           - script: |
               python --version
             displayName: 'Check Python Version'
-
-          # Simulate defect detection and logging (Windows-compatible)
           - script: |
               echo "Detecting defects and logging in CodeBeamer..."
             displayName: 'Simulate Defect Detection'
-
-          # Log detected defects to CodeBeamer using Python
           - script: |
-              python scripts/defect_logging.py  # Log defects using the defect.py script
+              python scripts/defect_logging.py
             displayName: 'Log Defects to CodeBeamer'
             env:
               cb_user: $(cb_user)
               cb_password: $(cb_password)
-
-          # Verify if the defect.py file exists and is the latest version
           - script: |
-              echo "Checking if defect.py exists and the latest version"
+              echo "Checking if defect_logging.py exists and the latest version"
               dir scripts\defect_logging.py
-            displayName: 'Verify defect.py Version'
+            displayName: 'Verify defect_logging.py Version'
