@@ -1,41 +1,27 @@
-trigger: none
+trigger: none  # No automatic trigger, only manual trigger
 
 pool:
   vmImage: 'windows-2019'
 
 variables:
-  - group: secrets  
+  - group: secrets
 
 stages:
-  # Stage 1: Checkout and Dependency Analysis
-  - stage: Checkout_And_Analyze
-    displayName: 'Checkout and Analyze Dependencies'
-    jobs:
-      - job: Checkout_And_Analyze
-        displayName: 'Checkout and Analyze Dependencies'
-        steps:
-          - checkout: self  # Ensure the repository is checked out
-            fetchDepth: 0  # Fetch full history to avoid shallow clones
-
-          - script: |
-              mvn clean
-              mvn dependency:tree
-            displayName: 'Clean and Analyze Dependencies'
-
-  # Stage 2: Build
   - stage: Build
-    displayName: 'Build Application'
-    dependsOn: Checkout_And_Analyze
+    displayName: 'Build and Package Application'
     jobs:
-      - job: Build
-        displayName: 'Build Application'
+      - job: BuildAndPackage
+        displayName: 'Build and Package Application'
         steps:
-          # Compile the code
+          # Checkout the code
+          - checkout: self  # Ensure the repository is checked out
+
+          # Clean and compile the project with Maven
           - task: Maven@3
-            displayName: 'Maven Compile'
+            displayName: 'Maven Clean and Compile'
             inputs:
               mavenPomFile: 'pom.xml'
-              goals: 'compile'
+              goals: 'clean compile'
               publishJUnitResults: false
               javaHomeOption: 'JDKVersion'
               jdkVersionOption: '17'
@@ -44,88 +30,15 @@ stages:
               mavenAuthenticateFeed: false
               effectivePomSkip: false
 
-          # Package the application
+          # Package the application with Maven
           - task: Maven@3
-            displayName: 'Package Application'
+            displayName: 'Maven Package'
             inputs:
               mavenPomFile: 'pom.xml'
               goals: 'package'
-              publishJUnitResults: true
-              testResultsFiles: '**/target/surefire-reports/*.xml'
+              publishJUnitResults: false
               javaHomeOption: 'JDKVersion'
               jdkVersionOption: '17'
               mavenVersionOption: 'Default'
               mavenOptions: '-DskipTests'
-              mavenAuthenticateFeed: true
-              effectivePomSkip: true
-
-          # Zip the artifacts
-          - task: PowerShell@2
-            displayName: 'Zip Maven Artifacts'
-            inputs:
-              targetType: 'inline'
-              script: |
-                $outputPath = "$(Build.ArtifactStagingDirectory)/maven_artifacts.zip"
-                Add-Type -AssemblyName System.IO.Compression.FileSystem
-                [System.IO.Compression.ZipFile]::CreateFromDirectory("$(System.DefaultWorkingDirectory)/target", $outputPath)
-                Write-Output "Artifacts zipped to $outputPath"
-
-          # Publish the zipped artifacts
-          - task: PublishBuildArtifacts@1
-            displayName: 'Publish Zipped Build Artifacts'
-            inputs:
-              PathtoPublish: '$(Build.ArtifactStagingDirectory)/maven_artifacts.zip'
-              ArtifactName: 'maven_artifacts'
-              publishLocation: 'Container'
-
-  # Stage 3: Copy Artifacts and Build Docker Image
-  - stage: Artifact_And_Docker
-    displayName: 'Copy Artifacts and Build Docker Image'
-    dependsOn: Build
-    pool:
-      vmImage: 'ubuntu-latest'  # Use a Linux-based pool for Docker tasks
-    jobs:
-      - job: Artifact_And_Docker
-        displayName: 'Copy Artifacts and Build Docker Image'
-        steps:
-          # Download the artifacts
-          - task: DownloadPipelineArtifact@2
-            displayName: 'Download Build Artifacts'
-            inputs:
-              artifactName: 'maven_artifacts'
-              targetPath: '$(Pipeline.Workspace)/artifacts'
-
-          # List contents of artifact staging directory
-          - script: |
-              echo "Contents of $(Pipeline.Workspace)/artifacts:"
-              ls -R $(Pipeline.Workspace)/artifacts
-            displayName: 'List Artifact Staging Directory Contents'
-
-          # Build Docker image with the custom tag
-          - task: Docker@2
-            displayName: 'Build and Push Docker Image'
-            inputs:
-              containerRegistry: 'DockerHub'
-              repository: 'parkassist/parkassistrepo'
-              command: 'buildAndPush'
-              Dockerfile: 'Dockerfile'
-              tags: |
-                $(Build.BuildId)
-                latest
-
-  # Stage 4: Test Run and Defect Logging in Codebeamer
-  - stage: Test
-    displayName: 'Test'
-    dependsOn: Artifact_And_Docker
-    jobs:
-      - job: RunPythonScript
-        displayName: 'Run Python Script'
-        steps:
-          - checkout: self  # Ensure the repository is checked out
-
-          - script: |
-              python Scripts/Automated_Test_Defect.py
-            displayName: 'Run Python Script'
-            env:
-              cb_user: $(cb_user)
-              cb_password: $(cb_password)
+              mavenAuthenticateFeed: false
