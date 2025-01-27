@@ -145,7 +145,7 @@ stages:
 
           # Log detected defects to CodeBeamer using Python
           - script: |
-              python scripts/defect.py  # Log defects using the defect.py script
+              python scripts/defect_logging.py  # Log defects using the defect.py script
             displayName: 'Log Defects to CodeBeamer'
             env:
               cb_user: $(cb_user)
