@@ -1,41 +1,22 @@
 import os
 import requests
 
-TRACKER_ID = 186754  
+# Configuration
+TRACKER_ID = 186754
 API_URL = f"http://20.235.210.85:8080/cb/api/v3/trackers/{TRACKER_ID}/items"
 AUTH = (os.getenv('cb_user'), os.getenv('cb_password'))
-HEADERS = {
-    "Content-Type": "application/json"
-}
+HEADERS = {"Content-Type": "application/json"}
 
+# Function to log defect
 def log_defect(failed_test_name, failure_reason):
+    print(f"Logging defect for {failed_test_name} with reason: {failure_reason}")  # Debugging line
     payload = {
         "name": f"Test-Defect: {failed_test_name}",
         "descriptionFormat": "Wiki",
-        "createdBy": {
-            "id": 1,
-            "name": "admin",
-            "type": "UserReference",
-            "email": "p.sudhir.kumar@accenture.com"
-        },
-        "priority": {
-            "id": 3,
-            "name": "Normal",
-            "type": "ChoiceOptionReference"
-        },
-        "status": {
-            "id": 1,
-            "name": "New",
-            "type": "ChoiceOptionReference"
-        },
-        "customFields": [
-            {
-                "fieldId": 10000,
-                "name": "Failure Reason",
-                "value": failure_reason,
-                "type": "TextFieldValue"
-            }
-        ]
+        "createdBy": {"id": 1, "name": "admin", "type": "UserReference", "email": "p.sudhir.kumar@accenture.com"},
+        "priority": {"id": 3, "name": "Normal", "type": "ChoiceOptionReference"},
+        "status": {"id": 1, "name": "New", "type": "ChoiceOptionReference"},
+        "customFields": [{"fieldId": 10000, "name": "Failure Reason", "value": failure_reason, "type": "TextFieldValue"}]
     }
 
     try:
@@ -47,3 +28,6 @@ def log_defect(failed_test_name, failure_reason):
             print("Response:", response.text)
     except requests.RequestException as e:
         print(f"Error during defect logging for {failed_test_name}:", e)
+
+# Sample call
+log_defect("Sample Test", "Sample failure reason")
