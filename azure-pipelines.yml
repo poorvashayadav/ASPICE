@@ -54,7 +54,7 @@ stages:
               javaHomeOption: 'JDKVersion'
               jdkVersionOption: '17'
               mavenVersionOption: 'Default'
-              mavenOptions: '-Xmx2048m'
+              mavenOptions: '-DskipTests'
               mavenAuthenticateFeed: true
               effectivePomSkip: true
 
