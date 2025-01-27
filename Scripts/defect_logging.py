@@ -1,15 +1,13 @@
 import os
 import requests
 
-# Configuration
-TRACKER_ID = 186754  # Tracker ID for "Defect-Bug Reports"
+TRACKER_ID = 186754  
 API_URL = f"http://20.235.210.85:8080/cb/api/v3/trackers/{TRACKER_ID}/items"
 AUTH = (os.getenv('cb_user'), os.getenv('cb_password'))
 HEADERS = {
     "Content-Type": "application/json"
 }
 
-# Function to log defect
 def log_defect(failed_test_name, failure_reason):
     payload = {
         "name": f"Test-Defect: {failed_test_name}",
