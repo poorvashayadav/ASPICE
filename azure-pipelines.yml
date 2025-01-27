@@ -34,11 +34,14 @@ stages:
   # Stage 2: Package
   - stage: Package
     displayName: 'Package Application'
-    dependsOn: Build  # This ensures the Package stage runs after Build
+    dependsOn: Build  # Ensures that the Package stage runs after Build stage
     jobs:
       - job: Package
         displayName: 'Package Application'
         steps:
+          # Ensure the repository is checked out in this stage
+          - checkout: self
+
           # Package the application with Maven
           - task: Maven@3
             displayName: 'Maven Package'
