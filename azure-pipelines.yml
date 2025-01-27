@@ -1,4 +1,4 @@
-trigger: none  # No automatic trigger, only manual trigger 
+trigger: none  # No automatic trigger, only manual trigger  
 
 pool:
   vmImage: 'windows-2019'
@@ -129,7 +129,7 @@ stages:
           # Ensure Python 3.12 is used
           - task: UsePythonVersion@0
             inputs:
-              versionSpec: '3.12'  # Specify Python version 3.12
+              versionSpec: '3.x'  # Specify Python version 3.x
               addToPath: true  # This adds Python to the system PATH
 
           # Verify the Python version
@@ -137,10 +137,15 @@ stages:
               python --version
             displayName: 'Check Python Version'
 
-          # Simulate defect detection and logging
+          # Checkout the latest code from the repository
+          - script: |
+              git fetch --all
+              git pull origin main  # Or use the branch you're working with, e.g., 'main' or 'master'
+            displayName: 'Fetch and Pull Latest Code'
+
+          # Simulate defect detection and logging (Windows-compatible)
           - script: |
               echo "Detecting defects and logging in CodeBeamer..."
-              # You can extend this with actual calls to vectorcast, dSPACE, or CARLA if needed
             displayName: 'Simulate Defect Detection'
 
           # Log detected defects to CodeBeamer using Python
@@ -154,5 +159,5 @@ stages:
           # Verify if the defect.py file exists and is the latest version
           - script: |
               echo "Checking if defect.py exists and the latest version"
-              ls -l scripts/defect_logging.py
-            displayName: 'Verify defect_logging.py Version'
+              dir scripts\defect_logging.py
+            displayName: 'Verify defect.py Version'
