@@ -86,10 +86,10 @@ stages:
           - task: Docker@2
             displayName: 'Build Docker Image'
             inputs:
-              containerRegistry: 'DockerHub'  # Docker registry connection (you can change this if using another registry)
-              repository: 'parkassist/aspice'  # Docker repository and image name
-              command: 'buildAndPush'  # Build and push the image
-              Dockerfile: 'Dockerfile'  # Path to Dockerfile in the repository
+              containerRegistry: 'DockerHub'
+              repository: 'parkasssist/aspice'
+              command: 'buildAndPush'
+              Dockerfile: 'Dockerfile'
               tags: |
                 $(Build.BuildId)
                 latest
