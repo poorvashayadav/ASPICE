@@ -16,8 +16,8 @@ RUN mvn clean package -DskipTests
 FROM openjdk:17-jdk-slim
 WORKDIR /app
 
-# Copy the JAR file from the build stage
-COPY --from=build /app/target/ParkAssist-0.0.1-SNAPSHOT.jar /app/ParkAssist-0.0.1-SNAPSHOT.jar
+# Copy the JAR file from the build stage (use the correct jar file name)
+COPY --from=build /app/target/aspicedev-1.0-SNAPSHOT.jar /app/aspicedev-1.0-SNAPSHOT.jar
 
 # Print the Java version to ensure Java is available
 RUN java -version
@@ -32,4 +32,4 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=10s --retries=5 CMD curl -f http://localhost/ || exit 1
 
 # Run the application
-ENTRYPOINT ["java", "-jar", "/app/ParkAssist-0.0.1-SNAPSHOT.jar"]
+ENTRYPOINT ["java", "-jar", "/app/aspicedev-1.0-SNAPSHOT.jar"]
