@@ -108,9 +108,6 @@ stages:
               python --version
             displayName: 'Check Python Version'
           - script: |
-              echo "Detecting defects and logging in CodeBeamer..."
-            displayName: 'Simulate Defect Detection'
-          - script: |
               python scripts/defect_logging.py
             displayName: 'Log Defects to CodeBeamer'
             env:
