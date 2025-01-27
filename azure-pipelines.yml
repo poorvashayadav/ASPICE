@@ -40,6 +40,12 @@ stages:
           # Checkout the repository again if needed
           - checkout: self
 
+          # Install Python dependencies (requests library)
+          - script: |
+              python -m pip install --upgrade pip
+              pip install requests
+            displayName: 'Install Python Dependencies'
+
           # Run the Carla test script located in the 'scripts' folder
           - script: |
               python scripts/test_carla.py
