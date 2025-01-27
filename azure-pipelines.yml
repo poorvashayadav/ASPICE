@@ -105,9 +105,6 @@ stages:
               versionSpec: '3.12'
               addToPath: true
           - script: |
-              python --version
-            displayName: 'Check Python Version'
-          - script: |
               python scripts/defect_logging.py
             displayName: 'Log Defects to CodeBeamer'
             env:
