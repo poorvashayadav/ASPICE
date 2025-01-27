@@ -1,5 +1,11 @@
 trigger: none
 
+pool:
+  vmImage: 'windows-2019'
+
+variables:
+  - group: secrets  
+
 stages:
   # Stage 1: Checkout and Dependency Analysis
   - stage: Checkout_And_Analyze
@@ -48,7 +54,7 @@ stages:
               javaHomeOption: 'JDKVersion'
               jdkVersionOption: '17'
               mavenVersionOption: 'Default'
-              mavenOptions: '-Xmx2048m --debug'
+              mavenOptions: '-Xmx2048m'
               mavenAuthenticateFeed: true
               effectivePomSkip: true
 
@@ -85,12 +91,13 @@ stages:
           - task: DownloadPipelineArtifact@2
             displayName: 'Download Build Artifacts'
             inputs:
-              artifact: 'maven_artifacts'
+              artifactName: 'maven_artifacts'
+              targetPath: '$(Pipeline.Workspace)/artifacts'
 
           # List contents of artifact staging directory
           - script: |
-              echo "Contents of $(Build.ArtifactStagingDirectory):"
-              ls -R $(Build.ArtifactStagingDirectory)
+              echo "Contents of $(Pipeline.Workspace)/artifacts:"
+              ls -R $(Pipeline.Workspace)/artifacts
             displayName: 'List Artifact Staging Directory Contents'
 
           # Build Docker image with the custom tag
@@ -108,6 +115,7 @@ stages:
   # Stage 4: Test Run and Defect Logging in Codebeamer
   - stage: Test
     displayName: 'Test'
+    dependsOn: Artifact_And_Docker
     jobs:
       - job: RunPythonScript
         displayName: 'Run Python Script'
