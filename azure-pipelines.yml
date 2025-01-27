@@ -30,6 +30,24 @@ stages:
               mavenAuthenticateFeed: false
               effectivePomSkip: false
 
+  - stage: Test
+    displayName: 'Test'
+    dependsOn: Build  # Ensure the Test stage runs after Build
+    jobs:
+      - job: RunCarlaTestScript
+        displayName: 'Run Carla Test Script'
+        steps:
+          # Checkout the repository again if needed
+          - checkout: self
+
+          # Run the Carla test script located in the 'scripts' folder
+          - script: |
+              python scripts/test_carla.py
+            displayName: 'Run Carla Test Script'
+            env:
+              cb_user: $(cb_user)
+              cb_password: $(cb_password)
+
   - stage: ZipAndPublishArtifacts
     displayName: 'Zip and Publish Artifacts'
     dependsOn: Build  # This stage depends on the Build stage
@@ -60,6 +78,7 @@ stages:
               PathtoPublish: '$(Build.ArtifactStagingDirectory)/maven_artifacts.zip'
               ArtifactName: 'maven_artifacts'
               publishLocation: 'Container'
+
   - stage: CopyArtifactsAndBuildDockerImage
     displayName: 'Copy Artifacts and Build Docker Image'
     dependsOn: ZipAndPublishArtifacts
@@ -93,3 +112,25 @@ stages:
               tags: |
                 $(Build.BuildId)
                 latest
+
+  - stage: DefectDetectionAndLogging
+    displayName: 'Defect Detection & Logging'
+    dependsOn: Test  # This stage depends on the Test stage
+    jobs:
+      - job: LogDefects
+        displayName: 'Log Defects in CodeBeamer'
+        steps:
+          # Simulate defect detection and logging (vectorcast/dSPACE integration may be needed)
+          - script: |
+              echo "Detecting defects and logging in CodeBeamer..."
+              # You can extend this with actual calls to vectorcast, dSPACE, or CARLA if needed
+            displayName: 'Simulate Defect Detection'
+
+          # Log detected defects to CodeBeamer
+          - script: |
+              echo "Logging defects to CodeBeamer..."
+              python scripts/defect.py  # Log defects using the defect.py script
+            displayName: 'Log Defects to CodeBeamer'
+            env:
+              cb_user: $(cb_user)
+              cb_password: $(cb_password)
