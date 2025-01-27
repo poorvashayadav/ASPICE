@@ -29,3 +29,34 @@ stages:
               mavenOptions: '-X -DskipTests'  # Enable debug and skip tests
               mavenAuthenticateFeed: false
               effectivePomSkip: false
+
+  - stage: ZipAndPublishArtifacts
+    displayName: 'Zip and Publish Artifacts'
+    dependsOn: Build  # This stage depends on the Build stage
+    jobs:
+      - job: ZipAndPublish
+        displayName: 'Zip and Publish Build Artifacts'
+        steps:
+          # Ensure the build output is available
+          - checkout: self  # Ensure the repository is checked out
+
+          # Zip the Maven build artifacts
+          - task: PowerShell@2
+            displayName: 'Zip Maven Artifacts'
+            inputs:
+              targetType: 'inline'
+              script: |
+                # Define the output path for the zip file
+                $outputPath = "$(Build.ArtifactStagingDirectory)/maven_artifacts.zip"
+                # Compress the target folder into a zip file
+                Add-Type -AssemblyName System.IO.Compression.FileSystem
+                [System.IO.Compression.ZipFile]::CreateFromDirectory("$(System.DefaultWorkingDirectory)/target", $outputPath)
+                Write-Output "Artifacts zipped to $outputPath"
+
+          # Publish the zipped artifacts
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish Zipped Artifacts'
+            inputs:
+              PathtoPublish: '$(Build.ArtifactStagingDirectory)/maven_artifacts.zip'
+              ArtifactName: 'maven_artifacts'
+              publishLocation: 'Container'
