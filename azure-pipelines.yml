@@ -1,4 +1,4 @@
-trigger: none  # No automatic trigger, only manual trigger
+trigger: none  # No automatic trigger, only manual trigger 
 
 pool:
   vmImage: 'windows-2019'
@@ -126,15 +126,20 @@ stages:
       - job: LogDefects
         displayName: 'Log Defects in CodeBeamer'
         steps:
-          # Simulate defect detection and logging (vectorcast/dSPACE integration may be needed)
+          # Ensure Python 3.12 is used
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.12'  # Specify Python version 3.12
+              addToPath: true  # This adds Python to the system PATH
+
+          # Simulate defect detection and logging
           - script: |
               echo "Detecting defects and logging in CodeBeamer..."
               # You can extend this with actual calls to vectorcast, dSPACE, or CARLA if needed
             displayName: 'Simulate Defect Detection'
 
-          # Log detected defects to CodeBeamer
+          # Log detected defects to CodeBeamer using Python
           - script: |
-              echo "Logging defects to CodeBeamer..."
               python scripts/defect.py  # Log defects using the defect.py script
             displayName: 'Log Defects to CodeBeamer'
             env:
