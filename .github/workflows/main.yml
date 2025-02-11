@@ -13,62 +13,63 @@ jobs:
       - name: Install Dependencies
         run: sudo apt-get install jq
       
+      - name: Authenticate with GitHub CLI
+        run: gh auth status || echo "GitHub CLI is not authenticated"
+
       - name: Fetch Deployment Frequency
         run: |
-          DEPLOYMENTS=$(gh api repos/poorvashayadav/aspice/actions/runs | jq '[.workflow_runs[] | select(.status=="completed") ] | length')
+          DEPLOYMENTS=$(gh api repos/poorvashayadav/aspice/actions/runs --paginate | jq '[.workflow_runs[] | select(.status=="completed") ] | length')
           echo "Deployment Frequency: $DEPLOYMENTS"
           echo "DEPLOYMENTS=$DEPLOYMENTS" >> $GITHUB_ENV
 
       - name: Fetch Build Success Rate
         run: |
-          TOTAL_BUILDS=$(gh api repos/poorvashayadav/aspice/actions/runs | jq '[.workflow_runs[]] | length')
-          SUCCESS_BUILDS=$(gh api repos/poorvashayadav/aspice/actions/runs | jq '[.workflow_runs[] | select(.conclusion=="success") ] | length')
-          BUILD_SUCCESS_RATE=$(echo "$SUCCESS_BUILDS $TOTAL_BUILDS" | awk '{if ($2>0) print ($1/$2)*100; else print 0}')
+          TOTAL_BUILDS=$(gh api repos/poorvashayadav/aspice/actions/runs --paginate | jq '[.workflow_runs[]] | length')
+          SUCCESS_BUILDS=$(gh api repos/poorvashayadav/aspice/actions/runs --paginate | jq '[.workflow_runs[] | select(.conclusion=="success") ] | length')
+          BUILD_SUCCESS_RATE=$(awk -v sb="$SUCCESS_BUILDS" -v tb="$TOTAL_BUILDS" 'BEGIN {if (tb>0) print (sb/tb)*100; else print 0}')
           echo "Build Success Rate: $BUILD_SUCCESS_RATE%"
           echo "BUILD_SUCCESS_RATE=$BUILD_SUCCESS_RATE" >> $GITHUB_ENV
-      
+
       - name: Calculate Lead Time for Changes
         run: |
-          LEAD_TIME=$(gh api repos/poorvashayadav/aspice/pulls?state=closed | jq '[.[] | select(.merged_at) | (.merged_at | fromdate - .created_at | fromdate) ] | add/length')
+          LEAD_TIME=$(gh api repos/poorvashayadav/aspice/pulls?state=closed --paginate | jq '[.[] | select(.merged_at) | ((.merged_at | fromdate) - (.created_at | fromdate))] | add/length')
+          LEAD_TIME=${LEAD_TIME:-0}  # Default to 0 if empty
           echo "Lead Time for Changes: $LEAD_TIME seconds"
           echo "LEAD_TIME=$LEAD_TIME" >> $GITHUB_ENV
-      
+
       - name: Calculate Mean Time to Recovery (MTTR)
         run: |
-          FAILURES=$(gh api repos/poorvashayadav/aspice/actions/runs | jq '[.workflow_runs[] | select(.conclusion=="failure")] | length')
-          RECOVERIES=$(gh api repos/poorvashayadav/aspice/actions/runs | jq '[.workflow_runs[] | select(.conclusion=="success")] | length')
-          if [ "$FAILURES" -gt 0 ]; then
-            MTTR=$(echo "$RECOVERIES $FAILURES" | awk '{print $1/$2}')
-          else
-            MTTR=0
-          fi
+          FAILURES=$(gh api repos/poorvashayadav/aspice/actions/runs --paginate | jq '[.workflow_runs[] | select(.conclusion=="failure")] | length')
+          RECOVERIES=$(gh api repos/poorvashayadav/aspice/actions/runs --paginate | jq '[.workflow_runs[] | select(.conclusion=="success")] | length')
+          MTTR=$(awk -v r="$RECOVERIES" -v f="$FAILURES" 'BEGIN {if (f>0) print r/f; else print 0}')
           echo "MTTR: $MTTR builds"
           echo "MTTR=$MTTR" >> $GITHUB_ENV
-      
+
       - name: Fetch Successfully Merged PRs
         run: |
-          MERGED_PRS=$(gh api repos/poorvashayadav/aspice/pulls?state=closed | jq '[.[] | select(.merged_at)] | length')
+          MERGED_PRS=$(gh api repos/poorvashayadav/aspice/pulls?state=closed --paginate | jq '[.[] | select(.merged_at)] | length')
           echo "Merged PRs: $MERGED_PRS"
           echo "MERGED_PRS=$MERGED_PRS" >> $GITHUB_ENV
-      
+
       - name: Calculate Average Time to Merge PRs
         run: |
-          AVG_MERGE_TIME=$(gh api repos/poorvashayadav/aspice/pulls?state=closed | jq '[.[] | select(.merged_at) | (.merged_at | fromdate - .created_at | fromdate) ] | add/length')
+          AVG_MERGE_TIME=$(gh api repos/poorvashayadav/aspice/pulls?state=closed --paginate | jq '[.[] | select(.merged_at) | ((.merged_at | fromdate) - (.created_at | fromdate))] | add/length')
+          AVG_MERGE_TIME=${AVG_MERGE_TIME:-0}
           echo "Average Merge Time: $AVG_MERGE_TIME seconds"
           echo "AVG_MERGE_TIME=$AVG_MERGE_TIME" >> $GITHUB_ENV
-      
+
       - name: Store Metrics in JSON
         run: |
           echo '{
-            "Deployment Frequency": "$DEPLOYMENTS",
-            "Build Success Rate": "$BUILD_SUCCESS_RATE%",
-            "Lead Time for Changes": "$LEAD_TIME seconds",
-            "MTTR": "$MTTR builds",
-            "Merged PRs": "$MERGED_PRS",
-            "Average Merge Time": "$AVG_MERGE_TIME seconds"
+            "Deployment Frequency": '"$DEPLOYMENTS"',
+            "Build Success Rate": "'"$BUILD_SUCCESS_RATE"'%",
+            "Lead Time for Changes": "'"$LEAD_TIME"' seconds",
+            "MTTR": "'"$MTTR"' builds",
+            "Merged PRs": '"$MERGED_PRS"',
+            "Average Merge Time": "'"$AVG_MERGE_TIME"' seconds"
           }' > metrics.json
           cat metrics.json
-      
+
       - name: Upload Metrics Artifact
         uses: actions/upload-artifact@v4
         with:
